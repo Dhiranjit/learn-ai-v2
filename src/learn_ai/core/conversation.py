@@ -1,13 +1,14 @@
 from learn_ai.llm.client import LLMClient
 from learn_ai.db.store import ConversationStore
 
+
 class Conversation:
     def __init__(
             self,
-            client: LLMClient, 
+            client: LLMClient,
             store: ConversationStore,
             notebook_id: int,
-            system_prompt:str | None = None
+            system_prompt: str | None = None
             ):
         self.client = client
         self.store = store
@@ -16,7 +17,7 @@ class Conversation:
         if not self.messages and system_prompt:
             self.messages.append({"role": "system", "content": system_prompt})
             store.append_message(notebook_id, "system", system_prompt)
-    
+
     def send(self, message: str) -> str:
         self.messages.append({"role": "user", "content": message})
         self.store.append_message(self.notebook_id, "user", message)
