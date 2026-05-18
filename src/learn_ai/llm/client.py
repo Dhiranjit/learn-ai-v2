@@ -1,5 +1,9 @@
+import re
+
 from openai import OpenAI
 from learn_ai.llm.providers import PROVIDERS
+
+_THINK_RE = re.compile(r"<think>.*?</think>\s*", re.DOTALL | re.IGNORECASE)
 
 
 class LLMClient:
@@ -20,4 +24,5 @@ class LLMClient:
             model=self.model,
             messages=messages
         )
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        return _THINK_RE.sub("", content).strip()
