@@ -4,9 +4,9 @@ from learn_ai.db.schema import init_db
 
 class ConversationStore:
     def __init__(self, db_path: str = "learn_ai.db"):
-        self.conn = sqlite3.connect(db_path)
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
-        self.conn.execute("PRAGMA foreign_key = ON")
+        self.conn.execute("PRAGMA foreign_keys = ON")
         init_db(self.conn)
 
     def create_notebook(self, title: str) -> int:
