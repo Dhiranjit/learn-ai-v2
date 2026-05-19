@@ -5,7 +5,6 @@ import streamlit as st
 from learn_ai.core.conversation import Conversation
 from learn_ai.db.store import ConversationStore
 from learn_ai.llm.client import LLMClient
-from learn_ai.observability.tracing import Tracer
 
 
 PROVIDER = "groq"
@@ -23,11 +22,6 @@ def get_client() -> LLMClient:
     return LLMClient(provider=PROVIDER, model=MODEL)
 
 
-@st.cache_resource
-def get_tracer() -> Tracer:
-    return Tracer("learn_ai.db")
-
-
 def get_conversation(notebook_id: int) -> Conversation:
     cache = st.session_state.setdefault("conversations", {})
     if notebook_id not in cache:
@@ -36,7 +30,6 @@ def get_conversation(notebook_id: int) -> Conversation:
             store=get_store(),
             notebook_id=notebook_id,
             system_prompt=SYSTEM_PROMPT,
-            tracer=get_tracer(),
         )
     return cache[notebook_id]
 

@@ -1,3 +1,3 @@
-from learn_ai.observability.tracing import Tracer, Trace
+from learn_ai.observability.tracing import Stage, Trace
 
-__all__ = ["Tracer", "Trace"]
+__all__ = ["Stage", "Trace"]
