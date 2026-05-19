@@ -11,6 +11,9 @@ dependencies = [
     "python-dotenv"
 ]
 
+[project.scripts]
+learn-ai = "learn_ai.frontend.cli:run"
+
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
