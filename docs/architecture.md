@@ -9,6 +9,7 @@ Current state of the project.
 │  frontend/app.py            (Streamlit UI)   │
 │    - sidebar: notebook list, new chat        │
 │    - main:    chat bubbles + input           │
+│  frontend/pages/traces.py   (trace viewer)   │
 └──────────────────┬───────────────────────────┘
                    │ uses
                    ▼
@@ -16,29 +17,49 @@ Current state of the project.
 │  core/conversation.py       (Conversation)   │
 │    - holds message list for one notebook     │
 │    - write-through: memory + DB per turn     │
-└──────┬───────────────────────────┬───────────┘
-       │ uses                      │ uses
-       ▼                           ▼
-┌────────────────────┐   ┌────────────────────────┐
-│  llm/client.py     │   │  db/store.py           │
-│  (LLMClient)       │   │  (ConversationStore)   │
-│  - chat(messages)  │   │  - create_notebook     │
-│  - strips <think>  │   │  - list_notebooks      │
-│                    │   │  - append_message      │
-│                    │   │  - load_messages       │
-└─────────┬──────────┘   └───────────┬────────────┘
-          │ uses                     │ uses
-          ▼                          ▼
-┌────────────────────┐   ┌────────────────────────┐
-│  llm/providers.py  │   │  db/schema.py          │
-│  - api keys        │   │  - notebooks table     │
-│  - base URLs       │   │  - messages table      │
-└─────────┬──────────┘   └───────────┬────────────┘
-          │                          │
-          ▼                          ▼
-   OpenAI-compatible API      SQLite (learn_ai.db)
-   (Groq / NVIDIA / ...)
+└──┬──────────────────┬──────────────────┬─────┘
+   │ uses             │ uses             │ uses
+   ▼                  ▼                  ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────────┐
+│ llm/client   │ │ db/store     │ │ observability/   │
+│ (LLMClient)  │ │ (Conv.Store) │ │   tracing.py     │
+│ - chat(msgs) │ │ - notebooks  │ │ - span context   │
+│ - strip<thk> │ │ - messages   │ │ - persists spans │
+└──────┬───────┘ └──────┬───────┘ └────────┬─────────┘
+       │ uses           │ uses             │ writes
+       ▼                ▼                  ▼
+┌──────────────┐ ┌──────────────┐    SQLite (traces)
+│ llm/providers│ │ db/schema    │
+│ - api keys   │ │ - tables     │
+│ - base URLs  │ │              │
+└──────┬───────┘ └──────┬───────┘
+       │                │
+       ▼                ▼
+ OpenAI-compatible  SQLite
+ API (Groq/NVIDIA)  (learn_ai.db)
 ```
+
+### RAG pipeline
+
+A standalone linear pipeline in `src/learn_ai/rag/`. End-to-end functional; not yet wired into `Conversation`.
+
+```
+notes/*.md  ──►  loader.py   ──►  Document(source, text)
+                                       │
+                                       ▼
+                                  chunker.py   ──►  Chunk(source, chunk_id, text)
+                                       │
+                                       ▼
+                                  index.py     ──►  Chroma collection (.chroma/)
+                                       │                (bge-base-en-v1.5, cosine)
+                                       ▼
+                                  retriever.py ──►  top-k chunks for a query
+```
+
+- `config.py` — paths, collection name, embedding model, chunk size/overlap
+- Embedding is delegated to Chroma's `SentenceTransformerEmbeddingFunction` so the same model runs at index and query time
+- Chunk ids are deterministic (`source::chunk_id`) so re-indexing edited notes upserts rather than duplicates
+- `retriever.py` returns `Retrieved(source, chunk_id, text, score)` with `score = 1 - cosine_distance`; empty queries short-circuit to `[]`
 
 ## Data flow — one chat turn
 
@@ -60,6 +81,10 @@ Current state of the project.
 ## Not yet built
 
 - `api/` — HTTP layer (for when we outgrow Streamlit).
-- `rag/` — retrieval-augmented generation over uploaded docs.
 - `memory/` — persistent cross-notebook memory.
-- `observability/` — structured tracing / logging.
+- RAG ↔ `Conversation` integration — retrieval results are not yet injected into the LLM call.
+
+## Recently built
+
+- `observability/tracing.py` — structured span tracing, persisted to SQLite. Viewed via `frontend/pages/traces.py`.
+- `rag/` — full pipeline (`loader → chunker → index → retriever`) using Chroma + `bge-base-en-v1.5`. Standalone; awaiting integration with `Conversation`.
