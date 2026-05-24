@@ -1,14 +1,9 @@
-import re
-
 from openai import OpenAI
 from learn_ai.llm.providers import PROVIDERS
-
-_THINK_RE = re.compile(r"<think>.*?</think>\s*", re.DOTALL | re.IGNORECASE)
 
 
 class LLMClient:
     def __init__(self, provider: str, model: str):
-    
         config = PROVIDERS.get(provider)
         if not config:
             raise ValueError(f"Unknown provider: {provider}")
@@ -19,10 +14,10 @@ class LLMClient:
             base_url=config["base_url"]
         )
     
-    def chat(self, messages: list[dict]):
+    def chat(self, messages: list[dict], tools: list[dict] | None = None):
         response = self.client.chat.completions.create(
             model=self.model,
-            messages=messages
+            messages=messages,
+            tools=tools
         )
-        content = response.choices[0].message.content
-        return _THINK_RE.sub("", content).strip()
+        return response.choices[0].message

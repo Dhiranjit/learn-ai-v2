@@ -14,7 +14,7 @@ class Retrieved:
         return f"{self.source}::{self.chunk_id}"
     
 
-def retriever(query: str, k: int = 5) -> list[Retrieved]:
+def retriever(query: str, top_k: int = 5) -> list[Retrieved]:
     """Return the top-k most semantically similar chunks for `query`."""
     if not query.strip():
         return []
@@ -22,7 +22,7 @@ def retriever(query: str, k: int = 5) -> list[Retrieved]:
     collection = get_collection()
     res = collection.query(
         query_texts=[query],
-        n_results=k
+        n_results=top_k
     )
 
     docs = res["documents"][0]
