@@ -14,7 +14,7 @@ class Retrieved:
         return f"{self.source}::{self.chunk_id}"
     
 
-def retrieve(query: str, k: int = 5) -> list[Retrieved]:
+def retriever(query: str, k: int = 5) -> list[Retrieved]:
     """Return the top-k most semantically similar chunks for `query`."""
     if not query.strip():
         return []
